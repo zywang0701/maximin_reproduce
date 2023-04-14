@@ -1,23 +1,5 @@
-### - updated at 10.7
-# * fix a bug
-### - updated at 10.5
-# * Different ratio for sample splitting
-### - updated at 10.4
-# * Debug Sample Splitting
-### - updated at 10.2
-# * Sample Splitting Function
-### - updated at 9.5
-# * Add function of threshold-1 and threshold-2
-# * Decompose the original function as whole into four separate steps
-### - updated at 9.14
-# * add optimization function `opt.weight.2` specifically for L=2
-# * adjust optimization `opt.weights` for faster speed after getting rid of 2nd optimization step 
-
-################################################################################
-## mm.s1.identify: 
 ## It is used for challenge settings to identify these under-covered settings for 
 ## Oracle Method. It removed some functions in `mm.s1`, thus save some time.
-################################################################################
 mm.s1.identify <- function(X.source, Y.source, idx.source, X.target=NULL, loading=NULL, cov.target=NULL,
                   covariate.shift=TRUE, lam.value="CV.min", intercept=TRUE){
   ####################### 1st Part: to obtain Gamma.prop #######################
@@ -143,11 +125,10 @@ mm.s1.identify <- function(X.source, Y.source, idx.source, X.target=NULL, loadin
 }
 
 
-################################################################################
+
 ## mm.s1.reward
 ## It is used to plot rewards. It removed some functions from `mm.s1`, thus saved
 ## some time.
-################################################################################
 mm.s1.reward <- function(X.source, Y.source, idx.source, X.target=NULL, loading=NULL, cov.target=NULL,
                            covariate.shift=TRUE, lam.value="CV.min", intercept=TRUE){
   ####################### 1st Part: to obtain Gamma.prop #######################
@@ -272,10 +253,9 @@ mm.s1.reward <- function(X.source, Y.source, idx.source, X.target=NULL, loading=
 }
 
 
-################################################################################
+
 ## mm.s1
 ## First step to do Maximin Inference
-################################################################################
 mm.s1 <- function(X.source, Y.source, idx.source, X.target=NULL, loading=NULL, cov.target=NULL,
                   covariate.shift=TRUE, lam.value="CV.min", intercept=TRUE){
   ####################### 1st Part: to obtain Gamma.prop #######################
@@ -449,6 +429,8 @@ mm.s1 <- function(X.source, Y.source, idx.source, X.target=NULL, loading=NULL, c
   return(returnList)
 }
 
+## mm.s1
+## First step to do Maximin Inference, but split the source data
 mm.s1.split <- function(X.source, Y.source, idx.source, X.target=NULL, loading=NULL, cov.target=NULL,
                         covariate.shift=TRUE, split=TRUE, split.ratio=0.5, lam.value="CV.min", intercept=TRUE){
   if(split){
@@ -656,6 +638,7 @@ mm.s1.split <- function(X.source, Y.source, idx.source, X.target=NULL, loading=N
   }
 }
 
+## second step for maximin inference
 mm.s2 <- function(Gamma.prop, Coef.est, Point.vec, delta=-1){
   if(delta==-1) delta = decide_delta(Gamma.prop, step_delta=0.1)
   ####################### Maximin Effects ##############################

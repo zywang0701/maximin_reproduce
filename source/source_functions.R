@@ -1,3 +1,4 @@
+## Linear Function: do bias-correction
 LF<-function(X,y,loading,intercept.loading=FALSE, intercept=TRUE,init.Lasso=NULL,lambda=NULL,mu=NULL,step=NULL,resol = 1.5,maxiter=10){
   ### Option 1: search tuning parameter with steps determined by the ill conditioned case (n=p/2)
   ### Option 2: search tuning parameter with maximum 10 steps.
@@ -101,18 +102,7 @@ LF<-function(X,y,loading,intercept.loading=FALSE, intercept=TRUE,init.Lasso=NULL
 }
 
 
-#' Compute Ridge-type weight vector
-#'
-#' @description \eqn{\argmin_{\gamma \in \Delta} \gamma^T (\Gamma + \delta * I) \gamma}.
-#'
-#' @param Gamma regression covariance matrix, of dimension \eqn{L} x \eqn{L}.
-#' @param delta the ridge penalty level, non-positive.
-#'
-#' @return
-#' \item{weight}{the minimizer \eqn{\gamma}}
-#' \item{reward}{the value of the objective}
-#'
-#' @import CVXR
+# Compute Ridge-type weight vector
 opt.weight<-function(Gamma,delta,report.reward=TRUE){
   L<-dim(Gamma)[2]
   opt.weight<-rep(NA, L)
@@ -150,6 +140,7 @@ opt.weight<-function(Gamma,delta,report.reward=TRUE){
   return(returnList)
 }
 
+# Compute Ridge-type weight vector without reward
 opt.weight.2<-function(Gamma,delta){
   opt.weight<-rep(NA, 2)
   temp<-(Gamma[2,2]+delta-Gamma[1,2])/(Gamma[1,1]+Gamma[2,2]+2*delta-2*Gamma[1,2])
@@ -163,22 +154,6 @@ opt.weight.2<-function(Gamma,delta){
 }
 
 #' Bias correction for initial estimator of Gamma target
-#'
-#' @param plug.in Initial estimator of Gamma target, of dimension \eqn{L} x \eqn{L}
-#' @param X.l Design matrix of label \eqn{l} in training data, of dimension \eqn{n_l} x \eqn{p}
-#' @param X.k Design matrix of label \eqn{k} in training data, of dimension \eqn{n_k} x \eqn{p}
-#' @param omega.l The l-th column of Omega matrix
-#' @param omega.k The k-th column of Omega matrix
-#' @param Y.l Outcome vector of label \eqn{l} in training data, of length \eqn{n_l}
-#' @param Y.k Outcome vector of label \eqn{k} in training data, of length \eqn{n_k}
-#' @param Pred.l Predicted outcome vector of label \eqn{l} in training data
-#' @param Pred.k Predicted outcome vector of label \eqn{k} in training data
-#'
-#' @return
-#' \item{est}{The proposed bias-corrected estimator of Gamma target}
-#' \item{proj.lk}{The projection direction of index (l, k)}
-#' \item{proj.kl}{The projection direction of index (k, l)}
-#' @export
 Gamma.shift<-function(plug.in,X.l,X.k,omega.l,omega.k,Y.l,Y.k,Pred.l,Pred.k){
   u.lk<-proj.direction(X.l,omega.k)
   u.kl<-proj.direction(X.k,omega.l)
@@ -192,23 +167,8 @@ Gamma.shift<-function(plug.in,X.l,X.k,omega.l,omega.k,Y.l,Y.k,Pred.l,Pred.k){
   return(returnList)
 }
 
-#' Estimate the covariance between the pi(l1,k1) entry and pi(l2,k2) entry
-#' when the covariance for the targeted distribution is unknown
-#'
-#' @param Var.vec Variance of residuals in groups, of length \eqn{L}
-#' @param l1 Index l1
-#' @param k1 Index k1
-#' @param l2 Index l2
-#' @param k2 Index k2
-#' @param X.l1 Design matrix of group \eqn{l1} in training data
-#' @param X.k1 Design matrix of group \eqn{k1} in training data
-#' @param X.l2 Design matrix of group \eqn{l2} in training data
-#' @param X.k2 Design matrix of group \eqn{k2} in training data
-#' @param Pred.mat.target Predicted outcome matrix for target design matrix
-#' using L fitted coefficients, of dimension \eqn{n.target} x \eqn{L}
-#' @param Proj.array Projection directions, of dimension \eqn{L} x \eqn{L} x \eqn{p}
-#'
-#' @return covariance between the pi(l1, k1) entry and pi(l2, k2) entry
+# Estimate the covariance between the pi(l1,k1) entry and pi(l2,k2) entry
+# when the covariance for the targeted distribution is unknown
 cov.inner.shift<-function(Var.vec,l1,k1,l2,k2,X.l1,X.k1,X.l2,X.k2,Pred.mat.target,Proj.array){
   N<-dim(Pred.mat.target)[1]
   Sigma.est.l1<-(1/dim(X.l1)[1])*(t(X.l1)%*%X.l1)
@@ -232,21 +192,8 @@ cov.inner.shift<-function(Var.vec,l1,k1,l2,k2,X.l1,X.k1,X.l2,X.k2,Pred.mat.targe
 }
 
 
-#' Estimate the covariance between the pi(l1,k1) entry and pi(l2,k2) entry
-#' when the covariance for the targeted distribution is known
-#'
-#' @param Var.vec Variance of residuals in groups, of length \eqn{L}
-#' @param l1 Index l1
-#' @param k1 Index k1
-#' @param l2 Index l2
-#' @param k2 Index k2
-#' @param X.l1 Design matrix of group \eqn{l1} in training data
-#' @param X.k1 Design matrix of group \eqn{k1} in training data
-#' @param X.l2 Design matrix of group \eqn{l2} in training data
-#' @param X.k2 Design matrix of group \eqn{k2} in training data
-#' @param Proj.array Projection directions, of dimension \eqn{L} x \eqn{L} x \eqn{p}
-#'
-#' @return covariance between the pi(l1, k1) entry and pi(l2, k2) entry
+# Estimate the covariance between the pi(l1,k1) entry and pi(l2,k2) entry
+# when the covariance for the targeted distribution is known
 cov.inner.shift.known<-function(Var.vec,l1,k1,l2,k2,X.l1,X.k1,X.l2,X.k2,Proj.array){
   Sigma.est.l1<-(1/dim(X.l1)[1])*(t(X.l1)%*%X.l1)
   Sigma.est.k1<-(1/dim(X.k1)[1])*(t(X.k1)%*%X.k1)
