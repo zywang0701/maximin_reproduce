@@ -1,261 +1,5 @@
-## It is used for challenge settings to identify these under-covered settings for 
-## Oracle Method. It removed some functions in `mm.s1`, thus save some time.
-mm.s1.identify <- function(X.source, Y.source, idx.source, X.target=NULL, loading=NULL, cov.target=NULL,
-                  covariate.shift=TRUE, lam.value="CV.min", intercept=TRUE){
-  ####################### 1st Part: to obtain Gamma.prop #######################
-  if(is.null(X.target)) X.target = X.source  # the code can adapt to No target setting
-  n.source = nrow(X.source)
-  n.target = nrow(X.target)
-  p = ncol(X.source)
-  L = length(unique(idx.source))
-  uni_groups = sort(unique(idx.source))
-  
-  ## check dimensions 
-  if(ncol(X.source)!=ncol(X.target)) stop("X.source and X.target have different dimensions")
-  if(n.source!=length(Y.source)) stop("X.source and Y.source have different number of samples")
-  if(n.source!=length(idx.source)) stop("length of idx.source differs from X.source")
-  
-  if(intercept) p = p+1
-  
-  Coef.est = matrix(0, p, L)  # estimators of groups
-  Pred.vec = rep(0, n.source)  # predicted outcome via corresponding group's estimator
-  Pred.mat.target = matrix(0, n.target, L)  # predicted target outcome via L groups' estimators
-  Point.vec = rep(0, L)  # hat of <loading, b^{(l)}>
-  Var.vec = rep(0, L)  # hat of sigma^2_l
-  SE.vec = rep(0, L)  # later used in SE(loading)
-  for(l in 1:L){
-    ## obtain estimators of group l using Lasso
-    index.set = which(idx.source==uni_groups[l])
-    X = X.source[index.set, ]
-    Y = Y.source[index.set]
-    col.norm = 1/sqrt(1/nrow(X)*diag(t(X)%*%X))
-    X.norm = X %*% diag(col.norm)
-    Coef.est[, l] = Lasso(X.norm, Y, lambda=lam.value, intercept=intercept)
-    if(intercept){
-      Coef.est[-1, l] = Coef.est[-1, l]*col.norm
-      Pred.vec[index.set] = X%*%Coef.est[-1, l] + Coef.est[1, l]
-      Pred.mat.target[, l] = X.target%*%Coef.est[-1, l] + Coef.est[1, l]
-    }else{
-      Coef.est[, l] = Coef.est*col.norm
-      Pred.vec[index.set] = X%*%Coef.est[, l]
-      Pred.mat.target[, l] = X.target%*%Coef.est[, l]
-    }
-    ## obtain variance of residual for group l
-    supp.l = which(abs(Coef.est[, l])>0.01)
-    n.eff = max(0.9*nrow(X), nrow(X)-length(supp.l))
-    Var.vec[l] = sum((Y - Pred.vec[index.set])^2) / n.eff
-    ## bias correction for <loading, b^{(l)}>
-    est <- LF(X, Y, loading, intercept=intercept, init.Lasso=Coef.est[, l])
-    SE.vec[l] = est$se
-    Point.vec[l] = est$prop.est
-  }
-  ## compte Gamma.plugin
-  if(!is.null(cov.target)){
-    Sigma.target.est = matrix(0, p, p)
-    if(intercept){
-      if(dim(cov.target)[1] != (p-1)) stop("cov.target has wrong dimensions")
-      Sigma.target.est[1, 1] = 1
-      Sigma.target.est[-1, -1] = cov.target
-    }else{
-      if(dim(cov.target)[1] != p) stop("cov.target has wrong dimensions")
-      Sigma.target.est = cov.target
-    }
-  }else{
-    if(covariate.shift){
-      if(intercept){
-        X.target.b = cbind(1, X.target)
-        Sigma.target.est = (1/n.target)*(t(X.target.b)%*%X.target.b)
-      }else{
-        Sigma.target.est = (1/n.target)*(t(X.target)%*%X.target)
-      }
-    }else{
-      if(intercept){
-        X.source.b = cbind(1, X.source)
-        X.target.b = cbind(1, X.target)
-        Sigma.target.est = (t(X.source.b)%*%X.source.b + t(X.target.b)%*%X.target.b)/(n.source+n.target)
-      }else{
-        Sigma.target.est = (t(X.source)%*%X.source + t(X.target)%*%X.target)/(n.source + n.target)
-      }
-    }
-  }
-  Gamma.plugin = t(Coef.est)%*%Sigma.target.est%*%Coef.est
-  Omega.est = Sigma.target.est%*%Coef.est
-  
-  ## conduct bias correction for Gamma.plugin
-  Gamma.prop = Gamma.plugin
-  Proj.array = array(NA, dim=c(L, L, p))
-  for(l in 1:L){
-    for(k in l:L){
-      index.set.l = which(idx.source==uni_groups[l])
-      index.set.k = which(idx.source==uni_groups[k])
-      X.l = X.source[index.set.l, ]
-      X.k = X.source[index.set.k, ]
-      Y.l = Y.source[index.set.l]
-      Y.k = Y.source[index.set.k]
-      Pred.l = Pred.vec[index.set.l]
-      Pred.k = Pred.vec[index.set.k]
-      
-      if(intercept){
-        X.l = cbind(1, X.l)
-        X.k = cbind(1, X.k)
-      }
-      if(covariate.shift){
-        output <- Gamma.shift(Gamma.plugin[l, k], X.l, X.k, Omega.est[, l], Omega.est[, k],
-                              Y.l, Y.k, Pred.l, Pred.k)
-        Gamma.prop[l, k] = output$est
-        Proj.array[l, k, ] = output$proj.lk
-        Proj.array[k, l, ] = output$proj.kl
-      }else{
-        Gamma.prop[l, k] = Gamma.plugin[l, k]+t(Coef.est[,l])%*%t(X.k)%*%(Y.k-Pred.k)/nrow(X.k)+
-          t(Coef.est[,k])%*%t(X.l)%*%(Y.l-Pred.l)/nrow(X.l)
-        Proj.array[l, k, ] = Coef.est[,k]
-        Proj.array[k, l, ] = Coef.est[,l]
-      }
-    }
-  }
-  for(l in 2:L){
-    for(k in 1:(l-1)){
-      Gamma.prop[l, k] = Gamma.prop[k, l]
-    }
-  }
-  returnList = list("Gamma.prop"=Gamma.prop,
-                    "Coef.est"=Coef.est,
-                    "Point.vec"=Point.vec)
-  return(returnList)
-}
-
-
-
-## mm.s1.reward
-## It is used to plot rewards. It removed some functions from `mm.s1`, thus saved
-## some time.
-mm.s1.reward <- function(X.source, Y.source, idx.source, X.target=NULL, loading=NULL, cov.target=NULL,
-                           covariate.shift=TRUE, lam.value="CV.min", intercept=TRUE){
-  ####################### 1st Part: to obtain Gamma.prop #######################
-  if(is.null(X.target)) X.target = X.source  # the code can adapt to No target setting
-  n.source = nrow(X.source)
-  n.target = nrow(X.target)
-  p = ncol(X.source)
-  L = length(unique(idx.source))
-  uni_groups = sort(unique(idx.source))
-  
-  ## check dimensions 
-  if(ncol(X.source)!=ncol(X.target)) stop("X.source and X.target have different dimensions")
-  if(n.source!=length(Y.source)) stop("X.source and Y.source have different number of samples")
-  if(n.source!=length(idx.source)) stop("length of idx.source differs from X.source")
-  
-  if(intercept) p = p+1
-  
-  Coef.est = matrix(0, p, L)  # estimators of groups
-  Pred.vec = rep(0, n.source)  # predicted outcome via corresponding group's estimator
-  Pred.mat.target = matrix(0, n.target, L)  # predicted target outcome via L groups' estimators
-  Point.vec = rep(0, L)  # hat of <loading, b^{(l)}>
-  Var.vec = rep(0, L)  # hat of sigma^2_l
-  SE.vec = rep(0, L)  # later used in SE(loading)
-  for(l in 1:L){
-    ## obtain estimators of group l using Lasso
-    index.set = which(idx.source==uni_groups[l])
-    X = X.source[index.set, ]
-    Y = Y.source[index.set]
-    col.norm = 1/sqrt(1/nrow(X)*diag(t(X)%*%X))
-    X.norm = X %*% diag(col.norm)
-    Coef.est[, l] = Lasso(X.norm, Y, lambda=lam.value, intercept=intercept)
-    if(intercept){
-      Coef.est[-1, l] = Coef.est[-1, l]*col.norm
-      Pred.vec[index.set] = X%*%Coef.est[-1, l] + Coef.est[1, l]
-      Pred.mat.target[, l] = X.target%*%Coef.est[-1, l] + Coef.est[1, l]
-    }else{
-      Coef.est[, l] = Coef.est*col.norm
-      Pred.vec[index.set] = X%*%Coef.est[, l]
-      Pred.mat.target[, l] = X.target%*%Coef.est[, l]
-    }
-    ## obtain variance of residual for group l
-    supp.l = which(abs(Coef.est[, l])>0.01)
-    n.eff = max(0.9*nrow(X), nrow(X)-length(supp.l))
-    Var.vec[l] = sum((Y - Pred.vec[index.set])^2) / n.eff
-    ## bias correction for <loading, b^{(l)}>
-    #est <- LF(X, Y, loading, intercept=intercept, init.Lasso=Coef.est[, l])
-    #SE.vec[l] = est$se
-    #Point.vec[l] = est$prop.est
-  }
-  ## compte Gamma.plugin
-  if(!is.null(cov.target)){
-    Sigma.target.est = matrix(0, p, p)
-    if(intercept){
-      if(dim(cov.target)[1] != (p-1)) stop("cov.target has wrong dimensions")
-      Sigma.target.est[1, 1] = 1
-      Sigma.target.est[-1, -1] = cov.target
-    }else{
-      if(dim(cov.target)[1] != p) stop("cov.target has wrong dimensions")
-      Sigma.target.est = cov.target
-    }
-  }else{
-    if(covariate.shift){
-      if(intercept){
-        X.target.b = cbind(1, X.target)
-        Sigma.target.est = (1/n.target)*(t(X.target.b)%*%X.target.b)
-      }else{
-        Sigma.target.est = (1/n.target)*(t(X.target)%*%X.target)
-      }
-    }else{
-      if(intercept){
-        X.source.b = cbind(1, X.source)
-        X.target.b = cbind(1, X.target)
-        Sigma.target.est = (t(X.source.b)%*%X.source.b + t(X.target.b)%*%X.target.b)/(n.source+n.target)
-      }else{
-        Sigma.target.est = (t(X.source)%*%X.source + t(X.target)%*%X.target)/(n.source + n.target)
-      }
-    }
-  }
-  Gamma.plugin = t(Coef.est)%*%Sigma.target.est%*%Coef.est
-  Omega.est = Sigma.target.est%*%Coef.est
-  
-  ## conduct bias correction for Gamma.plugin
-  Gamma.prop = Gamma.plugin
-  Proj.array = array(NA, dim=c(L, L, p))
-  for(l in 1:L){
-    for(k in l:L){
-      index.set.l = which(idx.source==uni_groups[l])
-      index.set.k = which(idx.source==uni_groups[k])
-      X.l = X.source[index.set.l, ]
-      X.k = X.source[index.set.k, ]
-      Y.l = Y.source[index.set.l]
-      Y.k = Y.source[index.set.k]
-      Pred.l = Pred.vec[index.set.l]
-      Pred.k = Pred.vec[index.set.k]
-      
-      if(intercept){
-        X.l = cbind(1, X.l)
-        X.k = cbind(1, X.k)
-      }
-      if(covariate.shift){
-        output <- Gamma.shift(Gamma.plugin[l, k], X.l, X.k, Omega.est[, l], Omega.est[, k],
-                              Y.l, Y.k, Pred.l, Pred.k)
-        Gamma.prop[l, k] = output$est
-        Proj.array[l, k, ] = output$proj.lk
-        Proj.array[k, l, ] = output$proj.kl
-      }else{
-        Gamma.prop[l, k] = Gamma.plugin[l, k]+t(Coef.est[,l])%*%t(X.k)%*%(Y.k-Pred.k)/nrow(X.k)+
-          t(Coef.est[,k])%*%t(X.l)%*%(Y.l-Pred.l)/nrow(X.l)
-        Proj.array[l, k, ] = Coef.est[,k]
-        Proj.array[k, l, ] = Coef.est[,l]
-      }
-    }
-  }
-  for(l in 2:L){
-    for(k in 1:(l-1)){
-      Gamma.prop[l, k] = Gamma.prop[k, l]
-    }
-  }
-  returnList = list("Gamma.prop"=Gamma.prop,
-                    "Coef.est"=Coef.est)
-  return(returnList)
-}
-
-
-
 ## mm.s1
-## First step to do Maximin Inference
+## First step to do Maximin Inference. It returns necessary information for next steps to do inference.
 mm.s1 <- function(X.source, Y.source, idx.source, X.target=NULL, loading=NULL, cov.target=NULL,
                   covariate.shift=TRUE, lam.value="CV.min", intercept=TRUE){
   ####################### 1st Part: to obtain Gamma.prop #######################
@@ -655,7 +399,7 @@ mm.s2 <- function(Gamma.prop, Coef.est, Point.vec, delta=-1){
   return(returnList)
 }
 
-# generate samples from scracth
+# generate samples
 mm.s3 <- function(gen.mu, gen.Cov, gen.dim, gen.size=500, threshold=0){
   ## Varying Approaches to generate samples
   if(threshold==0){
@@ -705,6 +449,7 @@ mm.s3 <- function(gen.mu, gen.Cov, gen.dim, gen.size=500, threshold=0){
   return(returnList)
 }
 
+## return confidence intervals
 mm.s4 <- function(Point.vec, SE.vec, L, gen.samples, gen.size, delta){
   ####################### Sampling #####################################
   gen.weight.mat = matrix(NA, nrow=gen.size, ncol=L)
@@ -742,6 +487,7 @@ mm.s4 <- function(Point.vec, SE.vec, L, gen.samples, gen.size, delta){
   return(returnList)
 }
 
+### used to compute instability measure
 mm.s3.measure <- function(L, gen.samples, gen.size){
   gen.Gamma.array = array(NA, dim=c(gen.size, L, L))
   for(g in 1:gen.size){
@@ -758,6 +504,7 @@ mm.s3.measure <- function(L, gen.samples, gen.size){
   return(returnList)
 }
 
+### used for compute instability measure
 mm.s4.measure <- function(L, gen.samples, gen.size, delta){
   gen.weight.mat = matrix(NA, nrow=gen.size, L)
 
@@ -781,7 +528,7 @@ mm.s4.measure <- function(L, gen.samples, gen.size, delta){
 }
 
 
-# decide for threshold 1 and 2, this function is only used for simulations
+# decide samples for threshold 1 and 2
 pick.samples <- function(gen.mu, gen.Cov, gen.dim, set.samples, threshold=1, alpha=0.01){
   if(threshold==1){
     # 1 stands for chi square threshold
