@@ -9,7 +9,7 @@ library(glmnet)
 library(intervals)
 
 # setting = {7,8}
-setting = 1
+setting = 7
 # sample size, n = {500}
 n = 500
 # nsim

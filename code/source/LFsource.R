@@ -1,4 +1,11 @@
-## Linear Function: do bias-correction
+### This script contains the main function LF(), which is going to make inference for linear 
+### combination of the regression vector in high dimensional generalized linear regression.
+### The function LF() included here is an older version found in the R package "SIHR". 
+### We have provided the source code for self-contained purposes.
+
+### LF:
+### inference for linear ombination of the regression vector in high dimensional generalized linear regression.
+### a newer version can be found in the R package "SIHR"
 LF<-function(X,y,loading,intercept.loading=FALSE, intercept=TRUE,init.Lasso=NULL,lambda=NULL,mu=NULL,step=NULL,resol = 1.5,maxiter=10){
   ### Option 1: search tuning parameter with steps determined by the ill conditioned case (n=p/2)
   ### Option 2: search tuning parameter with maximum 10 steps.
@@ -101,6 +108,8 @@ LF<-function(X,y,loading,intercept.loading=FALSE, intercept=TRUE,init.Lasso=NULL
   }
 }
 
+### getmode
+### get the mode number
 getmode <- function(v) {
   tbl <- table(v)
   if (all(tbl == 1)) {
@@ -110,6 +119,8 @@ getmode <- function(v) {
   }
 }
 
+### Lasso
+### run LASSO algorithm by specifying parameter "lambda"
 Lasso <- function(X, y, lambda = NULL, intercept = TRUE) {
   p <- ncol(X)
   n <- nrow(X)
@@ -158,6 +169,8 @@ Lasso <- function(X, y, lambda = NULL, intercept = TRUE) {
   }
 }
 
+### Initiazation.step
+### obtain initial estimators for regression coefficients and other information
 Initialization.step <- function(X, y, lambda = NULL, intercept = FALSE) {
   n <- nrow(X)
   col.norm <- 1 / sqrt((1 / n) * diag(t(X) %*% X))
@@ -182,6 +195,8 @@ Initialization.step <- function(X, y, lambda = NULL, intercept = FALSE) {
   return(returnList)
 }
 
+### Direction_fixedtuning_lin
+### find the projection direction with fixed "mu", a newer version can be found in the package "SIHR"
 Direction_fixedtuning_lin<-function(X,loading,mu=NULL){
   pp<-ncol(X)
   n<-nrow(X)
@@ -205,6 +220,8 @@ Direction_fixedtuning_lin<-function(X,loading,mu=NULL){
   return(returnList)
 }
 
+### Direction_searchtuning_lin
+### find the projection direction with data-dependent "mu", a newer version can be found in the package "SIHR"
 Direction_searchtuning_lin<-function(X,loading,mu=NULL, resol = 1.5, maxiter = 10){
   pp<-ncol(X)
   n<-nrow(X)
@@ -274,18 +291,13 @@ Direction_searchtuning_lin<-function(X,loading,mu=NULL, resol = 1.5, maxiter = 1
   return(returnList)
 }
 
-#' Mapping the index of lower triangular matrix to its vectorized version
-#'
-#' @param L the 1st/2nd dimension of the matrix
-#' @param l the row index of the matrix
-#' @param k the column index of the matrix
-#'
-#' @return the index of vector after mapping
+### Mapping the index of lower triangular matrix to its vectorized version
 index.map<-function(L,l,k){
   return((2*L-k)*(k-1)/2+l)
 }
 
-
+### proj.direction
+### compute the projection direction, a new version can be found in the R package "SIHR"
 proj.direction<-function(Xc,loading,maxiter=6,resol=1.25){
   n<-dim(Xc)[1]
   p<-dim(Xc)[2]

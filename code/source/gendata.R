@@ -1,4 +1,5 @@
-# For later simulations, we firstly create two functions for generating data
+### gen.data.with.target
+### it generates data for simulations. The generated data includes target data
 gen.data.with.target <- function(mean.source, cov.source, mean.target, cov.target, N.target, Bs, Ns, L){
   N.source = sum(Ns)
   index.source = seq(N.source)
@@ -19,6 +20,9 @@ gen.data.with.target <- function(mean.source, cov.source, mean.target, cov.targe
   return(returnList)
 }
 
+
+### gen.data.only source
+### it generates data for simulations. The generated data only includes source data.
 gen.data.only.source <- function(mean.source, cov.source, Bs, Ns, L, sd=1){
   N.source = sum(Ns)
   index.source = seq(N.source)
@@ -36,6 +40,7 @@ gen.data.only.source <- function(mean.source, cov.source, Bs, Ns, L, sd=1){
                   "idx.source"=idx.source)
 }
 
+### util function to generate covariance
 cov.gen <- function(p, rho){
   cov = matrix(0, nrow=p, ncol=p)
   for(i in 1:p){
@@ -44,116 +49,4 @@ cov.gen <- function(p, rho){
     }
   }
   return(cov)
-}
-
-cov.coef.loading.settings <- function(setting){
-  cov.source = cov.gen(p, 0.6)
-  cov.target = cov.source
-  Bs = matrix(0, nrow=p, ncol=L)
-  loading = rep(0, p)
-  if(setting==1){
-    # cov.target
-    for(i in 1:p) cov.target[i, i] = 1.5
-    for(i in 1:5){
-      for(j in 1:5){
-        if(i!=j) cov.target[i, j] = 0.9
-      }
-    }
-    for(i in (p-1):p){
-      for(j in (p-1):p){
-        if(i!=j) cov.target[i, j] = 0.9
-      }
-    }
-    # Bs
-    for(j in 1:10) Bs[j, ] = j/40
-    Bs[22:23, ] = 1
-    Bs[p-2, 1] = 0.5
-    Bs[(p-1):p, 1] = -0.5
-    for(l in 2:L) Bs[p, l] = 1.4-0.2*l
-    # loading
-    loading[(p-2):p] = 1
-  }
-  if(setting==2){
-    # cov.target
-    for(i in 1:p) cov.target[i, i] = 1.1
-    for(i in 1:6){
-      for(j in 1:6){
-        if(i!=j) cov.target[i, j] = 0.75
-      }
-    }
-    # Bs
-    for(j in 1:10) Bs[j, 1] = j/10
-    for(j in 11:20) Bs[j, 1] = (10-j)/10
-    Bs[21, 1] = 1/5
-    Bs[22:23, 1] = 1
-    for(l in 2:L){
-      for(j in 1:10) Bs[j, l] = Bs[j, 1] + 0.1*(l-1)/sqrt(300)
-      for(j in 11:20) Bs[j, l] = -0.3*(l-1)/sqrt(300)
-      Bs[21, l] = 0.5*(l-1)
-      for(j in 22:23) Bs[j, l] = 0.2*(j-1)
-    }
-    # loading
-    loading[21:23] = 1
-  }
-  if(setting==3){
-    set.seed(2021)
-    # cov.target
-    for(i in 1:p) cov.target[i, i] = 1.1
-    for(i in 1:6){
-      for(j in 1:6){
-        if(i!=j) cov.target[i, j] = 0.75
-      }
-    }
-    # Bs
-    for(j in 1:10) Bs[j, 1] = j/10
-    for(j in 11:20) Bs[j, 1] = (10-j)/10
-    Bs[21, 1] = 1/5
-    Bs[22:23, 1] = 1
-    for(l in 2:2){
-      for(j in 1:10) Bs[j, l] = Bs[j, 1] + 0.1*(l-1)/sqrt(300)
-      for(j in 11:20) Bs[j, l] = -0.3*(l-1)/sqrt(300)
-      Bs[21, l] = 0.5*(l-1)
-      for(j in 22:23) Bs[j, l] = 0.2*(j-1)
-    }
-    for(l in 3:L) Bs[1:6, l] = rnorm(6)
-    # loading
-    Sigma.new = matrix(0, nrow=p, ncol=p)
-    for(i in 1:p){
-      for(j in 1:p){
-        Sigma.new[i, j] = 0.5 ^ (1+abs(i-j)) / 25
-      }
-    }
-    loading = mvrnorm(1, mu=rep(0, p), Sigma=Sigma.new)
-  }
-  if(setting==0){
-    ## irregularity setting
-    if(L!=2) stop("Setting 4 works only when L=2")
-    # cov.target
-    for(i in 1:p) cov.target[i, i] = 1.5
-    for(i in 1:5){
-      for(j in 1:5){
-        if(i!=j) cov.target[i, j] = 0.9
-      }
-    }
-    for(i in (p-1):p){
-      for(j in (p-1):p){
-        if(i!=j) cov.target[i, j] = 0.9
-      }
-    }
-    # Bs
-    for(j in 1:10) Bs[j, 1] = j/40
-    for(j in 11:20) Bs[j, 1] = (10-j)/40
-    Bs[21, 1] = 0.2
-    Bs[22:23, 1] = 1
-    for(j in 1:10) Bs[j, 2] = Bs[j, 1] + perb/sqrt(300)
-    Bs[21, 2] = 0.5
-    Bs[22:23, 2] = 0.2
-    # loading
-    for(j in 1:5) loading[j] = j/5
-  }
-  returnList <- list("cov.source"=cov.source,
-                     "cov.target"=cov.target,
-                     "Bs"=Bs,
-                     "loading"=loading)
-  return(returnList)
 }

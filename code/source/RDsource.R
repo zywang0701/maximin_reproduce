@@ -1,3 +1,5 @@
+### MaximinRD
+### The main function to prepare materials, used in Real Data application.
 MaximinRD <- function(Xlist, Ylist, loading.idx, LFest, X.target=NULL, cov.target=NULL,
                       covariate.shift=TRUE, Coef.est){
   
@@ -164,7 +166,8 @@ MaximinRD <- function(Xlist, Ylist, loading.idx, LFest, X.target=NULL, cov.targe
   structure(out, class = "Maximin")
 }
 
-
+### infer
+### after running "MaximinRD()", it is used to do inference.
 infer <- function(object, delta=0, gen.size=500, threshold=0, alpha=0.05, alpha.thres=0.01){
   ##############################
   ####### Maximin Effects ######
@@ -255,6 +258,8 @@ infer <- function(object, delta=0, gen.size=500, threshold=0, alpha=0.05, alpha.
   return(out)
 }
 
+### gen.prepare
+### generate samples and compute the optimal weights for each sample.
 gen.prepare <- function(object, delta=0, gen.size=500, threshold=0, alpha.thres=0.01){
   ##############################
   ####### Maximin Effects ######
@@ -325,35 +330,14 @@ gen.prepare <- function(object, delta=0, gen.size=500, threshold=0, alpha.thres=
     gen.solution = opt.weight(gen.matrix, delta, report.reward=FALSE)
     gen.weight.vector = gen.solution$weight
     gen.weight.mat[g, ] = gen.weight.vector
-    # gen.point = sum(object$Point.vec * gen.weight.vector)
-    # gen.se = sqrt(sum(gen.weight.vector^2 * object$SE.vec^2))
-    # gen.est[g, 1] = gen.point
-    # gen.est[g, 2] = gen.se
   }
-  
-  # CI.original = cbind(gen.est[, 1]-qnorm(1-alpha/2)*gen.est[, 2], gen.est[,1]+qnorm(1-alpha/2)*gen.est[,2])
-  # CI = na.omit(CI.original)
-  # uni = Intervals(CI)
-  # CI.union = as.matrix(interval_union(uni))
-  # colnames(CI.union) <- c("lower", "upper")
   
   out = list(gen.weight.mat = gen.weight.mat)
   return(out)
 }
-# 
-# gen.est.build <- function(object, weight.mat){
-#   gen.size = nrow(weight.mat)
-#   gen.est = matrix(NA, nrow=gen.size, ncol=2)
-#   for(i in 1:gen.size){
-#     gen.weight.vector = weight.mat[i,]
-#     gen.point = sum(object$Point.vec * gen.weight.vector)
-#     gen.se = sqrt(sum(gen.weight.vector^2 * object$SE.vec^2))
-#     gen.est[g, 1] = gen.point
-#     gen.est[g, 2] = gen.se
-#   }
-#   return(gen.est)
-# }
 
+### pvalue.search
+### In real data application, it used to search p-value for maximin effect.
 pvalue.search <- function(gen.est, tol=1e-4){
   alpha0 = 0
   alpha1 = 1
@@ -374,6 +358,8 @@ pvalue.search <- function(gen.est, tol=1e-4){
               step = step))
 }
 
+### pvalue.test
+### it is a util function for pvalue.search
 pvalue.test <- function(gen.est, alpha){
   CI.ori = cbind(gen.est[,1] - qnorm(1-alpha/2)*gen.est[,2], 
                  gen.est[,1] + qnorm(1-alpha/2)*gen.est[,2])

@@ -7,14 +7,11 @@ library(CVXR)
 library(glmnet)
 library(intervals)
 
-# picked setting, setting = {1,2,3,4,5,6}
+# picked setting, setting = {0,1,2,3,4,5,6}
 setting = 1
 # nsim
 nsim = 500
 
-################################################################################
-# Objective of the task:
-# high d
 #############################Do not modify below################################
 # The number of groups, L
 L = 4

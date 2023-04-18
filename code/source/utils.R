@@ -1,4 +1,5 @@
-# Compute Ridge-type weight vector
+### opt.weight
+### Compute Ridge-type weight vector
 opt.weight<-function(Gamma,delta,report.reward=TRUE){
   L<-dim(Gamma)[2]
   opt.weight<-rep(NA, L)
@@ -36,7 +37,8 @@ opt.weight<-function(Gamma,delta,report.reward=TRUE){
   return(returnList)
 }
 
-# Compute Ridge-type weight vector without reward
+### opt.weight.2
+### Compute Ridge-type weight vector without reward
 opt.weight.2<-function(Gamma,delta){
   opt.weight<-rep(NA, 2)
   temp<-(Gamma[2,2]+delta-Gamma[1,2])/(Gamma[1,1]+Gamma[2,2]+2*delta-2*Gamma[1,2])
@@ -49,7 +51,8 @@ opt.weight.2<-function(Gamma,delta){
   return(returnList)
 }
 
-#' Bias correction for initial estimator of Gamma target
+### Gamma.shift
+### Bias correction for initial estimator of Gamma target
 Gamma.shift<-function(plug.in,X.l,X.k,omega.l,omega.k,Y.l,Y.k,Pred.l,Pred.k){
   u.lk<-proj.direction(X.l,omega.k)
   u.kl<-proj.direction(X.k,omega.l)
@@ -63,8 +66,9 @@ Gamma.shift<-function(plug.in,X.l,X.k,omega.l,omega.k,Y.l,Y.k,Pred.l,Pred.k){
   return(returnList)
 }
 
-# Estimate the covariance between the pi(l1,k1) entry and pi(l2,k2) entry
-# when the covariance for the targeted distribution is unknown
+### cov.inner.shift
+### Estimate the covariance between the pi(l1,k1) entry and pi(l2,k2) entry
+### when the covariance for the targeted distribution is unknown
 cov.inner.shift<-function(Var.vec,l1,k1,l2,k2,X.l1,X.k1,X.l2,X.k2,Pred.mat.target,Proj.array){
   N<-dim(Pred.mat.target)[1]
   Sigma.est.l1<-(1/dim(X.l1)[1])*(t(X.l1)%*%X.l1)
@@ -87,9 +91,9 @@ cov.inner.shift<-function(Var.vec,l1,k1,l2,k2,X.l1,X.k1,X.l2,X.k2,Pred.mat.targe
   return((var))
 }
 
-
-# Estimate the covariance between the pi(l1,k1) entry and pi(l2,k2) entry
-# when the covariance for the targeted distribution is known
+### cov.inner.shift.known
+### Estimate the covariance between the pi(l1,k1) entry and pi(l2,k2) entry
+### when the covariance for the targeted distribution is known
 cov.inner.shift.known<-function(Var.vec,l1,k1,l2,k2,X.l1,X.k1,X.l2,X.k2,Proj.array){
   Sigma.est.l1<-(1/dim(X.l1)[1])*(t(X.l1)%*%X.l1)
   Sigma.est.k1<-(1/dim(X.k1)[1])*(t(X.k1)%*%X.k1)
@@ -110,6 +114,8 @@ cov.inner.shift.known<-function(Var.vec,l1,k1,l2,k2,X.l1,X.k1,X.l2,X.k2,Proj.arr
   return((var))
 }
 
+### decide_delta
+### Given matrix Gamma, it can decide the penalty level delta data-dependently.
 decide_delta <- function(Gamma, step_delta=0.1, MAX_iter=100, verbose=TRUE){
   L = dim(Gamma)[1]
   min_eigen = min(eigen(Gamma)$values)
@@ -158,21 +164,8 @@ decide_delta <- function(Gamma, step_delta=0.1, MAX_iter=100, verbose=TRUE){
   return(delta)
 }
 
-# 
-# bootstrap <- function(idx.source, m,B=1000, replace=FALSE){
-#   mat.resample = matrix(NA, nrow=m, ncol=B)
-#   uni_groups = sort(unique(idx.source))
-#   for(index.g in 1:length(uni_groups)){
-#     g = uni_groups[index.g]
-#     m.g = floor(m*(table(idx.source)[index.g] / length(idx.source)))
-#     # print(paste("group=",g,"m.g=",m.g))
-#     idx.g = which(idx.source==uni_groups[g])
-#     idx.rows = seq((index.g-1)*m.g+1, index.g*m.g)  
-#     mat.resample[idx.rows,] = replicate(B, sample(idx.g, size=m.g, replace=replace))
-#   }
-#   return(na.omit(mat.resample))
-# }
-
+### report.true
+### util function used in simulations
 report.true <- function(Bs, cov.target, loading=NULL, delta.truth=-1, verbose=TRUE){
   Gamma = t(Bs) %*% cov.target %*% Bs
   if(delta.truth==-1){
@@ -197,6 +190,8 @@ report.true <- function(Bs, cov.target, loading=NULL, delta.truth=-1, verbose=TR
   return(returnList)
 }
 
+### report.true.reward
+### util function used in simulations
 report.true.reward <- function(Bs, cov.target, loading=NULL, delta.truth=-1, verbose=TRUE){
   Gamma = t(Bs) %*% cov.target %*% Bs
   if(delta.truth==-1){
