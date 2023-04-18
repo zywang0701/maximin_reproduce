@@ -1,17 +1,3 @@
-## Data
-
-### Abstract
-
-This research analyze a genome-wide association study on yeast colony
-growth. The original data was obtained in the paper Bloom et al. (2013).
-The information include single nuclenotide polynorphisms (SNPs) for
-yeast segregants, the yeast colony sizes under various growth media, and
-also the SNP indexes selected by the original work.
-
-### Availability
-
-Data are publicly available.
-
 ## Code
 
 This folder contains all necessary files for real-data analysis and
@@ -26,30 +12,29 @@ simulation settings in the paper.
 
 ### Simulations
 
-The folders “./code/Irregular-Settings” and “./code/Main-Settings”
-correspond to the simulations in the paper. These two folders contains
-all necessary files to generate and analyze the simulated settings. The
-contents are as follows:
+The folders “./code/simulations” corresponds to the simulations in the
+paper. These two folders contains all necessary files to generate and
+analyze the simulated settings. The contents are as follows:
 
--   ./code/Irregular-Settings/I0to6.R generates setting (I0), (I1),…, or
-    (I6) and apply the proposed algorithm on it
--   ./code/Irregular-Settings/I7&8.R generates setting (I7) or (I8) and
-    apply the proposed algorithm on it
--   ./code/Irregular-Settings/I9&10.R generates setting (I9) or (I10)
-    and apply the proposed algorithhm on it
--   ./code/Main-Settings/Setting1.R generates setting 1 and apply the
+-   ./code/simulations/I0to6.R generates setting (I0), (I1),…, or (I6)
+    and apply the proposed algorithm on it
+-   ./code/simulations/I7&8.R generates setting (I7) or (I8) and apply
+    the proposed algorithm on it
+-   ./code/simulations/I9&10.R generates setting (I9) or (I10) and apply
+    the proposed algorithhm on it
+-   ./code/simulations/Setting1.R generates setting 1 and apply the
     proposed algorithhm on it
--   ./code/Main-Settings/Setting2.R generates setting 2 and apply the
+-   ./code/simulations/Setting2.R generates setting 2 and apply the
     proposed algorithhm on it
--   ./code/Main-Settings/Setting3a.R generates setting 3a and apply the
+-   ./code/simulations/Setting3a.R generates setting 3a and apply the
     proposed algorithhm on it
--   ./code/Main-Settings/Setting3b.R generates setting 3b and apply the
+-   ./code/simulations/Setting3b.R generates setting 3b and apply the
     proposed algorithhm on it
--   ./code/Main-Settings/Setting4.R generates setting 4 and apply the
+-   ./code/simulations/Setting4.R generates setting 4 and apply the
     proposed algorithhm on it
--   ./code/Main-Settings/Setting5.R generates setting 5 and apply the
+-   ./code/simulations/Setting5.R generates setting 5 and apply the
     proposed algorithhm on it
--   ./code/Main-Settings/Setting6.R generates setting 6 and apply the
+-   ./code/simulations/Setting6.R generates setting 6 and apply the
     proposed algorithhm on it
 
 Each script (setting) listed above requires more than 8 hours to finish.
@@ -72,73 +57,3 @@ These functions uses the following libraries:
 -   CVXR version 1.0.11
 -   intervals version 0.15.2
 -   MASS version 7.3.57
-
-## Reproducibility workflow
-
-The provided workflow reproduces all the tables and figures in the
-section 7 and section 8. \#### Table 1
-
-In the folder “code/Irregular-Settings”, run the script:
-
-1.  “I0to6.R” returns the RData files for (I0) (I1) … (I6), by setting
-    the argument “Setting”
-2.  “I7&8.R” returns the RData files for (I7) and (I8), by setting the
-    argument “Setting”
-3.  “I9&10.R” returns the RData files for (I9) and (I10), by setting the
-    argument “Setting”
-
-The column “I()” is the average of “measure.sim”; The column
-“Coverage-Proposed” corresponds to the average of 8th column in
-“mat.store”; The column “Length-Proposed” corresponds to the average of
-3rd column in “mat.store”; For the columns “Coverage-normality” and
-“Length-normality”: (1) obtain the 1st column in “mat.store”,
-corresponding to 500 simulated point estimators (2) compute the mean and
-standard error of these 500 simulated point estimators (3) build 95%
-confidence interval with normality based on above mean and se (4) for
-length: we compute the length of above confidence interval (5) for
-coverage: we count how many times the true value “trueList$true.val” is
-contained in the above confidence interval The column “Length Ratio” is
-the division of “Length-Proposed” over “Length-normality”;
-
-#### Figure 3
-
-In the folder “code/Irregular-Settings”, run the script:
-
-1.  “I0to6.R”, set “Setting=1”
-2.  “I7&8.R”, set “Setting=8”
-3.  “I9&10.R”, set “Setting=10”
-
-For the top-subfigures, pick the 500 simulated point estimators at the
-1st column in “mat.store”: (1) draw histograms with density of these
-point estimators (2) draw blue dashed vertical line with average (3)
-draw red vertical line with true value “trueList$true.val”
-
-For the bot-subfigures, pick the 500 simulated weights at “weights.sim”
-(1) for the left bot-subfigure, draw histograms of “weights.sim\[,4\]”
-(2) for the middle and right bot-subfigures, draw histograms of
-“weights.sim\[,1\]”
-
-#### Table 2
-
-In the folder “code/Main-Settings”, run the corresponding script to each
-setting. In these script, set the arguments “n” across {200,300,500} and
-“delta.vec={0,0.1,0.5,1,2}” Summarize the RDatas, the coverage and
-length are in 8th and 3rd column of “mat.store.List\[\[i.delta\]\]”,
-where i.delta = 1,2,3,4,5 indicating which delta it runs with.
-
-#### Figure 4
-
-In the folder “code/Main-Settings”, run script “Setting1.R”. In the
-script, set the arguments “n” across {100, 200, 300, 500} and
-“delta.vec={0,0.1, 0.5, 1, 2}” Summarize the RDatas, coverage, CI length
-is the average of 8th and 3rd column of “mat.store.List\[\[i.delta\]\]”,
-where i.delta = 1,2,3,4,5 indicating which delta it runs with. The
-length ratio is computed in the same approach explained in “Table 1”
-
-#### Figure 5
-
-In the folder “code/Main-Settings”, run script “Setting3a” and
-“Setting3b”. In each script, (1)the argument “Setting=1”: algorithm “CS
-Known” (2)the argument “Setting=2”: algorithm “CS n=500” (3)the argument
-“Setting=3”: algorithm “No CS N=500” Then summarize the results in the
-same approach explained in “Figure 4”
